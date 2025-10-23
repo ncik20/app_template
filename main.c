@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "HAL/inc/altera_up_avalon_ps2_regs.h" 
 
 //volatile const unsigned int disp_addr = 0x0;
 volatile const unsigned int finish_addr = 0x00000000;
@@ -47,6 +48,10 @@ int main()
 {
   uint32_t mstatus = 0b1000;
   csr_write(CSR_MSTATUS, mstatus);
+
+  unsigned int data_reg = 0; 
+  data_reg = IORD_ALT_UP_PS2_PORT_DATA_REG(0x40000200);
+
   DISPLAY_INT(A(3,3));
 #if TEST
   DISPLAY_CUT(count);
