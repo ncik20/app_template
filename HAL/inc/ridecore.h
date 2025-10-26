@@ -1,5 +1,5 @@
 // #################################################################################################
-// # << RIDECORE: ridecore_cpu.h - CPU Core Functions HW Driver >>                                   #
+// # << RIDECORE: ridecore.h - CPU Core Functions HW Driver >>                                   #
 // # ********************************************************************************************* #
 // # BSD 3-Clause License                                                                          #
 // #                                                                                               #
@@ -34,17 +34,28 @@
 
 
 /**********************************************************************//**
- * @file ridecore_cpu.h
+ * @file ridecore.h
  * @author ncik20
  * @brief CPU Core Functions HW driver header file.
  **************************************************************************/
 
-#ifndef ridecore_cpu_h
-#define ridecore_cpu_h
+#ifndef ridecore_h
+#define ridecore_h
 
 #include "alt_types.h"
 
-#define CSR_MSTATUS_MIE 4
+#define CSR_MSTATUS_MIE 3
+
+/*
+ * ps2_keyboard_0 configuration
+ *
+ */
+
+#define PLIC_BASE 0x40000000
+
+#define PS2_KEYBOARD_0_NAME "/dev/ps2_keyboard_0"
+#define PS2_KEYBOARD_0_BASE 0x40000200
+#define PS2_KEYBOARD_0_IRQ 0
 
 /**********************************************************************//**
  * Prototype for "after-main handler". This function is called if main() returns.
@@ -52,7 +63,7 @@
  * @param[in] return_code Return value of main() function.
  * @return Return value is irrelevant (there is no one left to check for it...).
  **************************************************************************/
-extern int __neorv32_crt0_after_main(int32_t return_code) __attribute__ ((weak));
+extern int __neorv32_crt0_after_main(alt_32 return_code) __attribute__ ((weak));
 
 
 /**********************************************************************//**
@@ -64,10 +75,10 @@ extern int __neorv32_crt0_after_main(int32_t return_code) __attribute__ ((weak))
  * @param[in] wdata Data word (32-bit) to store.
  * @return Operation status (32-bit, zero if success).
  **************************************************************************/
-inline alt_u32 __attribute__ ((always_inline)) ridecore_cpu_store_conditional(alt_u32 addr, alt_u32 wdata) {
+inline alt_u32 ALT_ALWAYS_INLINE ridecore_cpu_store_conditional(void* addr, alt_u32 wdata) {
 
 #if defined __riscv_atomic || defined __riscv_a
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data = wdata;
   register alt_u32 reg_status;
 
@@ -88,9 +99,9 @@ inline alt_u32 __attribute__ ((always_inline)) ridecore_cpu_store_conditional(al
  * @param[in] addr Address (32-bit).
  * @param[in] wdata Data word (32-bit) to store.
  **************************************************************************/
-inline void ALT_ALWAYS_INLINE __builtin_stwio(alt_u32 addr, alt_u32 wdata) {
+inline void ALT_ALWAYS_INLINE __builtin_stwio(void* addr, alt_u32 wdata) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data = wdata;
 
   asm volatile ("sw %[da], 0(%[ad])" : : [da] "r" (reg_data), [ad] "r" (reg_addr));
@@ -105,9 +116,9 @@ inline void ALT_ALWAYS_INLINE __builtin_stwio(alt_u32 addr, alt_u32 wdata) {
  * @param[in] addr Address (32-bit).
  * @param[in] wdata Data half-word (16-bit) to store.
  **************************************************************************/
-inline void ALT_ALWAYS_INLINE __builtin_sthio(alt_u32 addr, alt_u16 wdata) {
+inline void ALT_ALWAYS_INLINE __builtin_sthio(void* addr, alt_u16 wdata) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data = (alt_u32)wdata;
 
   asm volatile ("sh %[da], 0(%[ad])" : : [da] "r" (reg_data), [ad] "r" (reg_addr));
@@ -120,9 +131,9 @@ inline void ALT_ALWAYS_INLINE __builtin_sthio(alt_u32 addr, alt_u16 wdata) {
  * @param[in] addr Address (32-bit).
  * @param[in] wdata Data byte (8-bit) to store.
  **************************************************************************/
-inline void ALT_ALWAYS_INLINE __builtin_stbio(alt_u32 addr, alt_u8 wdata) {
+inline void ALT_ALWAYS_INLINE __builtin_stbio(void* addr, alt_u8 wdata) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data = (alt_u32)wdata;
 
   asm volatile ("sb %[da], 0(%[ad])" : : [da] "r" (reg_data), [ad] "r" (reg_addr));
@@ -137,9 +148,9 @@ inline void ALT_ALWAYS_INLINE __builtin_stbio(alt_u32 addr, alt_u8 wdata) {
  * @param[in] addr Address (32-bit).
  * @return Read data word (32-bit).
  **************************************************************************/
-inline alt_u32 __attribute__ ((always_inline)) ridecore_cpu_load_reservate_word(alt_u32 addr) {
+inline alt_u32 ALT_ALWAYS_INLINE ridecore_cpu_load_reservate_word(void* addr) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data;
 
 #if defined __riscv_atomic || defined __riscv_a
@@ -161,9 +172,9 @@ inline alt_u32 __attribute__ ((always_inline)) ridecore_cpu_load_reservate_word(
  * @param[in] addr Address (32-bit).
  * @return Read data word (32-bit).
  **************************************************************************/
-inline alt_u32 ALT_ALWAYS_INLINE __builtin_ldwio(alt_u32 addr) {
+inline alt_u32 ALT_ALWAYS_INLINE __builtin_ldwio(void* addr) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data;
 
   asm volatile ("lw %[da], 0(%[ad])" : [da] "=r" (reg_data) : [ad] "r" (reg_addr));
@@ -180,9 +191,9 @@ inline alt_u32 ALT_ALWAYS_INLINE __builtin_ldwio(alt_u32 addr) {
  * @param[in] addr Address (32-bit).
  * @return Read data half-word (16-bit).
  **************************************************************************/
-inline alt_u16 ALT_ALWAYS_INLINE __builtin_ldhuio(alt_u32 addr) {
+inline alt_u16 ALT_ALWAYS_INLINE __builtin_ldhuio(void* addr) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data;
 
   asm volatile ("lhu %[da], 0(%[ad])" : [da] "=r" (reg_data) : [ad] "r" (reg_addr));
@@ -197,9 +208,9 @@ inline alt_u16 ALT_ALWAYS_INLINE __builtin_ldhuio(alt_u32 addr) {
  * @param[in] addr Address (32-bit).
  * @return Read data byte (8-bit).
  **************************************************************************/
-inline alt_u8 ALT_ALWAYS_INLINE __builtin_ldbuio(alt_u32 addr) {
+inline alt_u8 ALT_ALWAYS_INLINE __builtin_ldbuio(void* addr) {
 
-  register alt_u32 reg_addr = addr;
+  register alt_u32 reg_addr = (alt_u32)addr;
   register alt_u32 reg_data;
 
   asm volatile ("lbu %[da], 0(%[ad])" : [da] "=r" (reg_data) : [ad] "r" (reg_addr));
@@ -214,7 +225,7 @@ inline alt_u8 ALT_ALWAYS_INLINE __builtin_ldbuio(alt_u32 addr) {
  * @param[in] csr_id ID of CSR to read. See #NEORV32_CSR_enum.
  * @return Read data (alt_u32).
  **************************************************************************/
-inline alt_u32 __attribute__ ((always_inline)) ridecore_cpu_csr_read(const int csr_id) {
+inline alt_u32 ALT_ALWAYS_INLINE ridecore_cpu_csr_read(const int csr_id) {
 
   register alt_u32 csr_data;
 
@@ -230,7 +241,7 @@ inline alt_u32 __attribute__ ((always_inline)) ridecore_cpu_csr_read(const int c
  * @param[in] csr_id ID of CSR to write. See #NEORV32_CSR_enum.
  * @param[in] data Data to write (alt_u32).
  **************************************************************************/
-inline void __attribute__ ((always_inline)) ridecore_cpu_csr_write(const int csr_id, alt_u32 data) {
+inline void ALT_ALWAYS_INLINE ridecore_cpu_csr_write(const int csr_id, alt_u32 data) {
 
   register alt_u32 csr_data = data;
 
@@ -248,7 +259,7 @@ inline void __attribute__ ((always_inline)) ridecore_cpu_csr_write(const int csr
  * timer interrupt) to allow the CPU to wake up again. If 'Zicsr' CPU extension is disabled,
  * this will permanently stall the CPU.
  **************************************************************************/
-inline void __attribute__ ((always_inline)) ridecore_cpu_sleep(void) {
+inline void ALT_ALWAYS_INLINE ridecore_cpu_sleep(void) {
 
   asm volatile ("wfi");
 }
@@ -257,7 +268,7 @@ inline void __attribute__ ((always_inline)) ridecore_cpu_sleep(void) {
 /**********************************************************************//**
  * Enable global CPU interrupts (via MIE flag in mstatus CSR).
  **************************************************************************/
-inline void __attribute__ ((always_inline)) ridecore_cpu_eint(void) {
+inline void ALT_ALWAYS_INLINE ridecore_cpu_eint(void) {
 
   asm volatile ("csrrsi zero, mstatus, %0" : : "i" (1 << CSR_MSTATUS_MIE));
 }
@@ -266,7 +277,7 @@ inline void __attribute__ ((always_inline)) ridecore_cpu_eint(void) {
 /**********************************************************************//**
  * Disable global CPU interrupts (via MIE flag in mstatus CSR).
  **************************************************************************/
-inline void __attribute__ ((always_inline)) ridecore_cpu_dint(void) {
+inline void ALT_ALWAYS_INLINE ridecore_cpu_dint(void) {
 
   asm volatile ("csrrci zero, mstatus, %0" : : "i" (1 << CSR_MSTATUS_MIE));
 }
@@ -275,7 +286,7 @@ inline void __attribute__ ((always_inline)) ridecore_cpu_dint(void) {
 /**********************************************************************//**
  * Trigger breakpoint exception (via EBREAK instruction).
  **************************************************************************/
-inline void __attribute__ ((always_inline)) ridecore_cpu_breakpoint(void) {
+inline void ALT_ALWAYS_INLINE ridecore_cpu_breakpoint(void) {
 
   asm volatile ("ebreak");
 }
@@ -284,10 +295,17 @@ inline void __attribute__ ((always_inline)) ridecore_cpu_breakpoint(void) {
 /**********************************************************************//**
  * Trigger "environment call" exception (via ECALL instruction).
  **************************************************************************/
-inline void __attribute__ ((always_inline)) ridecore_cpu_env_call(void) {
+inline void ALT_ALWAYS_INLINE ridecore_cpu_env_call(void) {
 
   asm volatile ("ecall");
 }
 
+/**********************************************************************//**
+ * mret.
+ **************************************************************************/
+inline void ALT_ALWAYS_INLINE ridecore_cpu_mret(void) {
 
-#endif // ridecore_cpu_h
+  asm volatile ("mret");
+}
+
+#endif // ridecore_h

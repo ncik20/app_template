@@ -1,4 +1,4 @@
-#include "HAL/inc/io.h"
+#include <stdint.h>
 #include "drivers/inc/altera_up_avalon_ps2.h"
 
 //volatile const unsigned int disp_addr = 0x0;
@@ -14,14 +14,30 @@ volatile const unsigned int flush_addr = 0x00002000;
 #define DISPLAY_CUT(num) *((int*)(countdisp_addr)) = num
 #define TEST 1
 
+const int CSR_MSTATUS = 0x300;
+
 /*
  * Allocate the device storage
  */
-ALTERA_UP_AVALON_PS2_INSTANCE(PS2_KEYBOARD_0, ps2_keyboard_0);
+
+ALTERA_UP_AVALON_PS2_INSTANCE (PS2_KEYBOARD_0, ps2_keyboard_0);
 
 #if TEST
 	int count = 0;
 #endif
+
+/**********************************************************************//**
+ * Write data to CPU configuration and status register (CSR).
+ *
+ * @param[in] csr_id ID of CSR to write. See #NEORV32_CSR_enum.
+ * @param[in] data Data to write (uint32_t).
+ **************************************************************************/
+inline void __attribute__ ((always_inline)) csr_write(const int csr_id, uint32_t data) {
+
+  register uint32_t csr_data = data;
+
+  asm volatile ("csrw %[input_i], %[input_j]" :  : [input_i] "i" (csr_id), [input_j] "r" (csr_data));
+}
 
 int A(int x, int y)
 {
@@ -34,34 +50,13 @@ int A(int x, int y)
 	return A(x - 1, A(x, y - 1));
 }
 
-void ridecore_init(void)
-{
-    // set PLIC Edge/Level
-    // 每个中断源都设置为Level类型
-    IOWR(PLIC_BASE, 0, 0x0);
-
-    // set PLIC Interrupt Priority
-    // 每个中断源占4bit，7个中断源的优先级都设为1
-    IOWR(PLIC_BASE, 1, 0x01111111);
-
-    // set PLIC Interrupt Enable
-    // 设置中断源[6]为enable
-    IOWR(PLIC_BASE, 2, 0x40);
-
-    // set PLIC Priority Threshold
-    // 不屏蔽任何src
-    IOWR(PLIC_BASE, 3, 0x0);
-
-    // Enable keyboard interrupts
-    alt_up_ps2_enable_read_interrupt(&ps2_keyboard_0);
-
-    // Enable global CPU interrupts
-    ridecore_cpu_eint();
-}
-
 int main()
 {
-  ridecore_init();
+  uint32_t mstatus = 0b1000;
+  csr_write(CSR_MSTATUS, mstatus);
+
+//  unsigned int data_reg = 0; 
+//  data_reg = IORD_ALT_UP_PS2_PORT_DATA_REG(0x40000200);
 
   DISPLAY_INT(A(3,3));
 #if TEST
@@ -69,7 +64,9 @@ int main()
 #endif
   FINISH_PROGRAM;
   //FLUSH_CACHE;
-
+  
+  //mstatus = 0x20002021;
+  //csr_write(CSR_MSTATUS, mstatus);
   while(1){;}
 
   return 0;

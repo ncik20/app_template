@@ -1,7 +1,7 @@
 #ifndef __ALT_UP_PS2_PORT_REGS_H__
 #define __ALT_UP_PS2_PORT_REGS_H__
 
-#include "io.h"
+#include "../../HAL/inc/io.h"
 
 
 /* 

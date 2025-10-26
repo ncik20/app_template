@@ -6,7 +6,7 @@ SECTIONS
   .startup 0x0000   : { startup.o(.text) 
                         . = 0x0200;
                         interrupt.o(.text)}
-  . = 0x1000;
+  . = 0x400;
 
   .init            : { KEEP (*(.init)) } = 0
   .plt             : { *(.plt) }

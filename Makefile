@@ -3,7 +3,20 @@
 ######################################################################
 
 TARGET   = init
-OBJS = startup.o interrupt.o main.o
+
+ROOTSRC=$(wildcard *.c)
+ROOTOBJ=$(patsubst %.c, %.o, $(ROOTSRC))
+SUBDIR=$(shell ls -d */)
+SUBSRC=$(shell find $(SUBDIR) -name '*.c')
+SUBOBJ=$(SUBSRC:%.c=%.o)
+
+$(info ROOTSRC: $(ROOTSRC))
+$(info ROOTOBJ: $(ROOTOBJ))
+$(info SUBDIR: $(SUBDIR))
+$(info SUBSRC: $(SUBSRC))
+$(info SUBOBJ: $(SUBOBJ))
+
+OBJS = startup.o interrupt.o main.o $(SUBOBJ)
 #CMDPREF = /home/share/cad/mipsel-emb/usr/bin/
 CMDPREF = 
 
@@ -30,7 +43,8 @@ $(TARGET): $(OBJS)
 	$(MIPSLD) $(LFLAGS) -T stdld.script $(OBJS) -o $(TARGET)
 
 .c.o:
-	$(MIPSCC) $(CFLAGS) -c $(@D)/$(<F) -o $(@D)/$(@F)
+#	$(MIPSCC) $(CFLAGS) -c $(@D)/$(<F) -o $(@D)/$(@F)
+	$(MIPSCC) $(CFLAGS) -c $< -o $@
 
 .S.o:
 	$(MIPSAS) $(AFLAGS) $(@D)/$(<F) -o $(@D)/$(@F)
@@ -48,5 +62,5 @@ read:
 	readelf -a $(TARGET)
 
 clean:
-	rm -f *.o *~ log.txt $(TARGET) $(TARGET).bin
+	rm -f *.o *~ log.txt $(SUBOBJ) $(TARGET) $(TARGET).bin
 ######################################################################

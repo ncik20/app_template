@@ -1,11 +1,11 @@
-#ifndef __IO_H__
-#define __IO_H__
+#ifndef __ALT_DEV_H__
+#define __ALT_DEV_H__
 
 /******************************************************************************
 *                                                                             *
 * License Agreement                                                           *
 *                                                                             *
-* Copyright (c) 2003 Altera Corporation, San Jose, California, USA.           *
+* Copyright (c) 2004 Altera Corporation, San Jose, California, USA.           *
 * All rights reserved.                                                        *
 *                                                                             *
 * Permission is hereby granted, free of charge, to any person obtaining a     *
@@ -33,49 +33,84 @@
 * file be used in conjunction or combination with any other product.          *
 ******************************************************************************/
 
-/* IO Header file for Nios II Toolchain */
+/******************************************************************************
+*                                                                             *
+* THIS IS A LIBRARY READ-ONLY SOURCE FILE. DO NOT EDIT.                       *
+*                                                                             *
+******************************************************************************/
 
-#include "ridecore.h"
+#include "../ridecore.h"
+#include "../alt_types.h"
+//#include "sys/alt_llist.h"
+//#include "priv/alt_dev_llist.h"
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-#ifndef SYSTEM_BUS_WIDTH
-#define SYSTEM_BUS_WIDTH 32
-#endif
+/*
+ * The value ALT_IRQ_NOT_CONNECTED is used to represent an unconnected 
+ * interrupt line. It cannot evaluate to a valid interrupt number.
+ */
 
-/* Dynamic bus access functions */
+#define ALT_IRQ_NOT_CONNECTED (-1)
 
-#define __IO_CALC_ADDRESS_DYNAMIC(BASE, OFFSET) \
-  ((void *)(((alt_u8*)BASE) + (OFFSET)))
+typedef struct alt_dev_s alt_dev;
 
-#define IORD_32DIRECT(BASE, OFFSET) \
-  __builtin_ldwio (__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))
-#define IORD_16DIRECT(BASE, OFFSET) \
-  __builtin_ldhuio (__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))
-#define IORD_8DIRECT(BASE, OFFSET) \
-  __builtin_ldbuio (__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)))
+struct stat;
 
-#define IOWR_32DIRECT(BASE, OFFSET, DATA) \
-  __builtin_stwio (__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)), (DATA))
-#define IOWR_16DIRECT(BASE, OFFSET, DATA) \
-  __builtin_sthio (__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)), (DATA))
-#define IOWR_8DIRECT(BASE, OFFSET, DATA) \
-  __builtin_stbio (__IO_CALC_ADDRESS_DYNAMIC ((BASE), (OFFSET)), (DATA))
+/*
+ * The file descriptor structure definition.
+ */
 
-/* Native bus access functions */
+typedef struct alt_fd_s
+{
+  alt_dev* dev;
+  alt_u8*  priv;
+  int      fd_flags;
+} alt_fd;
 
-#define __IO_CALC_ADDRESS_NATIVE(BASE, REGNUM) \
-  ((void *)(((alt_u8*)BASE) + ((REGNUM) * (SYSTEM_BUS_WIDTH/8))))
+/* 
+ * The device structure definition. 
+ */
+ 
+struct alt_dev_s {
+//  alt_llist    llist;     /* for internal use */
+  const char*  name; 
+  int (*open)  (alt_fd* fd, const char* name, int flags, int mode);
+  int (*close) (alt_fd* fd);
+  int (*read)  (alt_fd* fd, char* ptr, int len);
+  int (*write) (alt_fd* fd, const char* ptr, int len); 
+  int (*lseek) (alt_fd* fd, int ptr, int dir);
+  int (*fstat) (alt_fd* fd, struct stat* buf);
+  int (*ioctl) (alt_fd* fd, int req, void* arg);
+};
 
-#define IORD(BASE, REGNUM) \
-  __builtin_ldwio (__IO_CALC_ADDRESS_NATIVE ((BASE), (REGNUM)))
-#define IOWR(BASE, REGNUM, DATA) \
-  __builtin_stwio (__IO_CALC_ADDRESS_NATIVE ((BASE), (REGNUM)), (DATA))
+/*
+ * Functions used to register device for access through the C standard 
+ * library.
+ *
+ * The only difference between alt_dev_reg() and alt_fs_reg() is the 
+ * interpretation that open() places on the device name. In the case of
+ * alt_dev_reg the device is assumed to be a particular character device,
+ * and so there must be an exact match in the name for open to succeed. 
+ * In the case of alt_fs_reg() the name of the device is treated as the
+ * mount point for a directory, and so any call to open() where the name 
+ * is the root of the device filename will succeed. 
+ */
+/*
+extern int alt_fs_reg  (alt_dev* dev); 
 
+static ALT_INLINE int alt_dev_reg (alt_dev* dev)
+{
+  extern alt_llist alt_dev_list;
+
+  return alt_dev_llist_insert ((alt_dev_llist*) dev, &alt_dev_list);
+}
+*/
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* __IO_H__ */
+ 
+#endif /* __ALT_DEV_H__ */

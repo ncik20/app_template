@@ -43,35 +43,8 @@
 	add x31, x0, x0
 	
 	li sp, 0x1f00   # stack pointer 7KB
-#set ps2 interrupt enable
-	li x28, 0x40000201
-	li x29, 0x1
-	sw x29, 0(x28)
-#set ps2 interrupt enable
 
-#set PLIC Edge/Level
-	li x28, 0x40000000
-	sw x0, 0(x28)       #每个中断源都设置为Level类型
-#set PLIC Edge/Level
-
-#set PLIC Interrupt Priority
-	li x28, 0x40000004
-	li x29, 0x01111111  #每个中断源占4bit，7个中断源的优先级都设为1
-	sw x29, 0(x28)
-#set PLIC Interrupt Priority
-
-#set PLIC Interrupt Enable
-	li x28, 0x40000008
-	li x29, 0x40        #设置中断源[6]为enable
-	sw x29, 0(x28)
-#set PLIC Interrupt Enable
-
-#set PLIC Priority Threshold
-	li x28, 0x4000000c
-	sw x0, 0(x28)       #不屏蔽任何src
-#set PLIC Priority Threshold
-
-	j      main       # jump to the main
+	j      main     # jump to the main
 	nop
 
 	.end _start
