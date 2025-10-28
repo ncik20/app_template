@@ -1,4 +1,4 @@
-#include <string.h>
+#include "../../HAL/inc/sys/alt_string.h"
 #include "../inc/altera_up_ps2_keyboard.h"
 
 #define SCAN_CODE_NUM  102
