@@ -28,6 +28,6 @@
 #	nop
 
 	.data
-
+    .globl kb_wptr
 kb_wptr:
     .byte 0x0

@@ -5,6 +5,7 @@
 volatile const unsigned int finish_addr = 0x00000000;
 volatile const unsigned int intdisp_addr = 0x00000004;
 volatile const unsigned int countdisp_addr = 0x00000008;
+volatile const unsigned int kb_buffer_addr = 0x00000010;
 volatile const unsigned int flush_addr = 0x00002000;
 
 //#define DISPLAY_CHAR(chr) *((int*)(disp_addr)) = chr
@@ -12,27 +13,14 @@ volatile const unsigned int flush_addr = 0x00002000;
 #define FLUSH_CACHE *((int*)(flush_addr)) = 0
 #define DISPLAY_INT(num) *((int*)(intdisp_addr)) = num
 #define DISPLAY_CUT(num) *((int*)(countdisp_addr)) = num
-#define TEST 1
 
 /*
  * Allocate the device storage
  */
 ALTERA_UP_AVALON_PS2_INSTANCE(PS2_KEYBOARD_0, ps2_keyboard_0);
 
-#if TEST
-	int count = 0;
-#endif
-
-int A(int x, int y)
-{
-#if TEST
-	count++;
- 	//DISPLAY_CUT(count);
-#endif
-	if (x == 0) return y + 1;
-	if (y == 0) return A(x - 1, 1);
-	return A(x - 1, A(x, y - 1));
-}
+extern unsigned char kb_wptr;
+unsigned char kb_rptr;
 
 void ridecore_init(void)
 {
@@ -59,18 +47,24 @@ void ridecore_init(void)
     ridecore_cpu_eint();
 }
 
+void do_key_pressed(void) {
+}
+
 int main()
 {
+  int key_pressed;
+
   ridecore_init();
 
-  DISPLAY_INT(A(3,3));
-#if TEST
-  DISPLAY_CUT(count);
-#endif
-  FINISH_PROGRAM;
-  //FLUSH_CACHE;
+  while(1) {
+    ridecore_cpu_dint();
+    key_pressed = (kb_rptr != kb_wptr) ? 1 : 0;
+    ridecore_cpu_eint();
 
-  while(1){;}
+    if (key_pressed) {
+        do_key_pressed();
+    }
+  }
 
   return 0;
 }
