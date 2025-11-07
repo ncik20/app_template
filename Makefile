@@ -28,7 +28,7 @@ OBJCOPY = $(CMDPREF)riscv64-unknown-elf-objcopy
 
 MEMGEN  = ../../../../../toolchain/memgen-v0.9/memgen
 
-CFLAGS  = -march=rv32i_zicsr -mabi=ilp32 -O2
+CFLAGS  = -march=rv32i_zicsr -mabi=ilp32 -O0
 AFLAGS  = -march=rv32i_zicsr -mabi=ilp32
 LFLAGS  = -static -melf32lriscv
 
@@ -50,7 +50,7 @@ $(TARGET): $(OBJS)
 	$(MIPSAS) $(AFLAGS) $(@D)/$(<F) -o $(@D)/$(@F)
 
 image:
-	$(MEMGEN) -b $(TARGET) 8 > $(TARGET).bin
+	$(MEMGEN) -b $(TARGET) 16 > $(TARGET).bin
 	
 dump:
 	$(OBJDUMP) -S $(TARGET)

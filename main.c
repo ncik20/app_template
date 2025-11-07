@@ -4,14 +4,16 @@
 
 volatile const unsigned int finish_addr = 0x00000000;
 volatile const unsigned int intdisp_addr = 0x00000004;
-volatile const unsigned int countdisp_addr = 0x00000008;
+volatile const unsigned int countdisp_addr = 0x000000a0;
 volatile const unsigned int flush_addr = 0x00002000;
+volatile const unsigned int kb_buffer_addr = 0x00000010;
 
-//#define DISPLAY_CHAR(chr) *((int*)(disp_addr)) = chr
-#define FINISH_PROGRAM *((int*)(finish_addr)) = 1
-#define FLUSH_CACHE *((int*)(flush_addr)) = 0
-#define DISPLAY_INT(num) *((int*)(intdisp_addr)) = num
+#define DISPLAY_CHAR(display_addr, chr) *((char*)(display_addr)) = chr
+//#define FINISH_PROGRAM *((int*)(finish_addr)) = 1
+//#define FLUSH_CACHE *((int*)(flush_addr)) = 0
+//#define DISPLAY_INT(num) *((int*)(intdisp_addr)) = num
 #define DISPLAY_CUT(num) *((int*)(countdisp_addr)) = num
+#define READ_KB_BUFF(num) *(((alt_u8*)(kb_buffer_addr)) + num)
 
 /**
  * @brief The enum type for the type of keyboard code received
@@ -97,10 +99,10 @@ typedef enum
  */
 ALTERA_UP_AVALON_PS2_INSTANCE(PS2_KEYBOARD_0, ps2_keyboard_0);
 
-alt_u8* kb_buffer = (alt_u8*)0x00000010;
-
 extern alt_u8 kb_wptr;
 alt_u8 kb_rptr = 0;
+char* print_addr = (char*)0x0;
+int count = 0;
 
 static DECODE_STATE key_decode_state = STATE_INIT;
 
@@ -274,30 +276,33 @@ void translate_make_code(KB_CODE_TYPE decode_mode, alt_u8 makecode, char *str)
 			strcpy(str, key_table[idx]);
 			break;
 		default:
-			str = "";
+            DISPLAY_CUT(++count);
+			str[0] = 0;
 			break;
 	}
 }
 
 void do_key_pressed(void) {
 
-    alt_u8 byte = *(kb_buffer + kb_rptr);
-    KB_CODE_TYPE *decode_mode;
-    alt_u8 *buf;
-    char *ascii;
+    alt_u8 byte = READ_KB_BUFF(kb_rptr);
+    KB_CODE_TYPE decode_mode;
+    alt_u8 buf;
+    char ascii;
 
-    *decode_mode = KB_INVALID_CODE;
+    decode_mode = KB_INVALID_CODE;
 
-    key_decode_state = get_next_state(key_decode_state, byte, decode_mode, buf, ascii);
+    key_decode_state = get_next_state(key_decode_state, byte, &decode_mode, &buf, &ascii);
 
     if (key_decode_state == STATE_DONE) {
         // decode
         char str[10];
-        translate_make_code(*decode_mode, *buf, str);
+        translate_make_code(decode_mode, buf, str);
 
         // print;
-        if (str[0] != 0) {
-            strcpy((char*)finish_addr, str);
+        int i = 0;
+
+        while (str[i] != 0) {
+            DISPLAY_CHAR(print_addr++, str[i++]);
         }
 
         key_decode_state = STATE_INIT;
