@@ -103,6 +103,8 @@ extern alt_u8 kb_wptr;
 alt_u8 kb_rptr = 0;
 char* print_addr = (char*)0x0;
 int count = 0;
+// char str_[10] = {'a', 'a', 'a', 'a', 'a', '\0', '\0', '\0', '\0', '\0'};
+// char str_[10] = "";
 
 static DECODE_STATE key_decode_state = STATE_INIT;
 
@@ -276,7 +278,6 @@ void translate_make_code(KB_CODE_TYPE decode_mode, alt_u8 makecode, char *str)
 			strcpy(str, key_table[idx]);
 			break;
 		default:
-            DISPLAY_CUT(++count);
 			str[0] = 0;
 			break;
 	}
@@ -295,14 +296,14 @@ void do_key_pressed(void) {
 
     if (key_decode_state == STATE_DONE) {
         // decode
-        char str[10];
-        translate_make_code(decode_mode, buf, str);
+        char str_[10] = "";
+        translate_make_code(decode_mode, buf, str_);
 
         // print;
         int i = 0;
 
-        while (str[i] != 0) {
-            DISPLAY_CHAR(print_addr++, str[i++]);
+        while (str_[i] != 0) {
+            DISPLAY_CHAR(print_addr++, str_[i++]);
         }
 
         key_decode_state = STATE_INIT;
@@ -319,10 +320,15 @@ int main()
 
   while(1) {
     ridecore_cpu_dint();
+    while (ridecore_cpu_csr_read(CSR_MSTATUS) & 0b1000);
+
     key_pressed = (kb_rptr != kb_wptr) ? 1 : 0;
+
     ridecore_cpu_eint();
+    while ((ridecore_cpu_csr_read(CSR_MSTATUS) & 0b1000) == 0);
 
     if (key_pressed) {
+        // DISPLAY_CUT(++count);
         do_key_pressed();
     }
   }

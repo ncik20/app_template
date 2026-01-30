@@ -44,6 +44,7 @@
 
 #include "alt_types.h"
 
+#define CSR_MSTATUS     0x300
 #define CSR_MSTATUS_MIE 3
 
 /*
