@@ -44,19 +44,34 @@
 
 #include "alt_types.h"
 
-#define CSR_MSTATUS     0x300
-#define CSR_MSTATUS_MIE 3
+//#define configCPU_CLOCK_HZ              32768
+//#define configTICK_RATE_HZ              1000
+
+#define CSR_MSTATUS                     0x300
+#define CSR_MIE                         0x304
+#define CSR_MSTATUS_MIE                 3
+
+#define MIE_MSI_BIT_MASK                0x8
+#define MIE_MTI_BIT_MASK                0x80
+#define MIE_MEI_BIT_MASK                0x800
+
+//#define configMTIME_BASE_ADDRESS        0x4000BFF8
+//#define configMTIMECMP_BASE_ADDRESS     0x40004000
+#define PLIC_BASE                       0x40010000
 
 /*
  * ps2_keyboard_0 configuration
  *
  */
-
-#define PLIC_BASE 0x40000000
-
 #define PS2_KEYBOARD_0_NAME "/dev/ps2_keyboard_0"
-#define PS2_KEYBOARD_0_BASE 0x40000200
+#define PS2_KEYBOARD_0_BASE 0x40020000
 #define PS2_KEYBOARD_0_IRQ 0
+/*
+ * uart_0 configuration
+ *
+ */
+#define UART_0_NAME "/dev/uart_0"
+#define UART_0_BASE 0x40020100
 
 /**********************************************************************//**
  * Prototype for "after-main handler". This function is called if main() returns.
@@ -283,6 +298,50 @@ inline void ALT_ALWAYS_INLINE ridecore_cpu_dint(void) {
   asm volatile ("csrrci zero, mstatus, %0" : : "i" (1 << CSR_MSTATUS_MIE));
 }
 
+/**********************************************************************//**
+ * Enable External interrupts (via MEIE flag in mie CSR).
+ **************************************************************************/
+inline void ALT_ALWAYS_INLINE ridecore_cpu_eeint(void) {
+
+    __asm__ volatile ("csrrs    zero, mie, %0"  
+                      : /* output: none */ 
+                      : "r" (MIE_MEI_BIT_MASK)  /* input : register */
+                      : /* clobbers: none */);
+}
+
+
+/**********************************************************************//**
+ * Disable External interrupts (via MEIE flag in mie CSR).
+ **************************************************************************/
+inline void ALT_ALWAYS_INLINE ridecore_cpu_deint(void) {
+
+    __asm__ volatile ("csrrc    zero, mie, %0"  
+                      : /* output: none */ 
+                      : "r" (MIE_MEI_BIT_MASK)  /* input : register */
+                      : /* clobbers: none */);
+}
+
+/**********************************************************************//**
+ * Enable Time interrupts (via MTIE flag in mie CSR).
+ **************************************************************************/
+inline void ALT_ALWAYS_INLINE ridecore_cpu_etint(void) {
+
+    __asm__ volatile ("csrrs    zero, mie, %0"  
+                      : /* output: none */ 
+                      : "r" (MIE_MTI_BIT_MASK)  /* input : register */
+                      : /* clobbers: none */);
+}
+
+/**********************************************************************//**
+ * Register CSR bit set and clear instructions.
+ **************************************************************************/
+inline void ALT_ALWAYS_INLINE csr_set_bits_mie(alt_u32 mask) {
+
+    __asm__ volatile ("csrrs    zero, mie, %0"  
+                      : /* output: none */ 
+                      : "r" (mask)  /* input : register */
+                      : /* clobbers: none */);
+}
 
 /**********************************************************************//**
  * Trigger breakpoint exception (via EBREAK instruction).

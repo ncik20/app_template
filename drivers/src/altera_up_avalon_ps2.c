@@ -35,8 +35,8 @@
 
 //#include <priv/alt_file.h>
 
-#include "../inc/altera_up_avalon_ps2.h"
-#include "../inc/altera_up_avalon_ps2_regs.h"
+#include "altera_up_avalon_ps2.h"
+#include "altera_up_avalon_ps2_regs.h"
 
 #define PS2_ACK 	(0xFA)
 

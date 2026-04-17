@@ -3,10 +3,8 @@ ENTRY(_start)
 
 SECTIONS
 {
-  .startup 0x0000   : { startup.o(.text) 
-                        . = 0x0200;
-                        interrupt.o(.text)}
-  . = 0x400;
+  .startup 0x00000000   : { startup.o(.text) }
+  . = 0x00000400;
 
   .init            : { KEEP (*(.init)) } = 0
   .plt             : { *(.plt) }
@@ -33,4 +31,18 @@ SECTIONS
   .bss            : { *(.dynbss)
                       *(.bss .bss.* .gnu.linkonce.b.*)
                       *(COMMON) }
+
+  _stack_top = 0x10000;
+
+  .stack :
+  {
+      . = ALIGN(16);
+      /* 设置中断栈的底部（起始位置），假设预留 2KB */
+      /* 由于栈是向下增长的，top 是高地址，bottom 是低地址 */
+      . = _stack_top - 2K; 
+      __freertos_irq_stack_bottom = .;
+
+      /* 导出 FreeRTOS 报错需要的符号，指向 64KB 的末尾 */
+      __freertos_irq_stack_top = _stack_top;
+    }
 }

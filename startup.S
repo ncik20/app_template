@@ -42,9 +42,10 @@
 	add x30, x0, x0
 	add x31, x0, x0
 	
-	li sp, 0x1f00   # stack pointer 7KB
+	la sp, _stack_top   # stack pointer @64KB
 
-	j      main     # jump to the main
+	j      main         # jump to the main
 	nop
 
 	.end _start
+
