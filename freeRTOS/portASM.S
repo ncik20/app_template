@@ -318,8 +318,8 @@ freertos_risc_v_application_interrupt_handler:
 //    csrr t2, mstatus    /* For viewing in the debugger only */
 //    j .
 
-    addi x2, x2, -4
-    sw x1, 4(x2)
+    addi x2, x2, -16        # 16-byte alignment
+    sw x1, 12(x2)
 external_interrupt_handler:
     #li x31, 0x40010010
     lw x31, PLIC_IDRegister
@@ -346,8 +346,8 @@ do_nothing:
     lw x31, PLIC_IDRegister
     sw x0, 0(x31)           # PLIC done
 
-    lw	x1, 4(x2)
-    addi x2, x2, 4
+    lw	x1, 12(x2)
+    addi x2, x2, 16
     ret
 /*-----------------------------------------------------------*/
 

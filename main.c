@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdbool.h>
 #include "io.h"
 #include "alt_string.h"
 #include "altera_up_avalon_ps2.h"
@@ -31,12 +32,22 @@ volatile alt_u64 * pullMachineTimerCompareRegister = NULL;
 static StaticTask_t xIdleTaskTCB;
 static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
 
+/* -------------------------------------------------------------------------
+ * keyboard
+ * ------------------------------------------------------------------------- */
 // 静态分配逻辑任务的内存
-StaticTask_t xLogicTaskTCB;
-StackType_t  uxLogicTaskStack[configMINIMAL_STACK_SIZE];
+StaticTask_t xKeyboardTaskTCB;
+StackType_t  uxKeyboardTaskStack[configMINIMAL_STACK_SIZE];
 
 // 关键：定义任务句柄，汇编中断需要通过这个句柄找到目标任务
 TaskHandle_t xKeyboardTaskHandle = NULL;
+/* -------------------------------------------------------------------------
+ * acker
+ * ------------------------------------------------------------------------- */
+StaticTask_t xAckerTaskTCB;
+StackType_t  uxAckerTaskStack[configMINIMAL_STACK_SIZE];
+
+TaskHandle_t xAckerTaskHandle = NULL;
 
 #define FINISH_PROGRAM *((int*)(finish_addr)) = 1
 #define DISPLAY_INT(num) *((int*)(intdisp_addr)) = num
@@ -50,6 +61,7 @@ TaskHandle_t xKeyboardTaskHandle = NULL;
 
 #if TEST
 	int count = 0;
+    bool do_acker = true;
 #endif
 
 /**
@@ -375,19 +387,17 @@ void translate_make_code(KB_CODE_TYPE decode_mode, alt_u8 makecode, char *str)
 	{
 		case KB_ASCII_MAKE_CODE:
 			idx = get_single_byte_make_code_index(makecode);
-            // alt_up_rs232_write_data(&uart_0, ascii_codes[idx]);
-            // DISPLAY_CHAR(print_addr++, ascii_codes[idx]);
-			strcpy(str, key_table[idx]);
+            alt_up_rs232_write_data(&uart_0, ascii_codes[idx]);
+			// strcpy(str, key_table[idx]);
 			break;
 		case KB_BINARY_MAKE_CODE:
 			idx = get_single_byte_make_code_index(makecode);
-            // alt_up_rs232_write_data(&uart_0, ascii_codes[idx]);
-            // DISPLAY_CHAR(print_addr++, ascii_codes[idx]);
-			strcpy(str, key_table[idx]);
+            alt_up_rs232_write_data(&uart_0, ascii_codes[idx]);
+			// strcpy(str, key_table[idx]);
 			break;
 		case KB_LONG_BINARY_MAKE_CODE:
 			idx = get_multi_byte_make_code_index(makecode);
-			strcpy(str, key_table[idx]);
+			// strcpy(str, key_table[idx]);
 			break;
 		default:
 			str[0] = 0;
@@ -416,6 +426,7 @@ void do_key_pressed(void) {
             FLUSH_CACHE(i);
         }
 */
+/*
         // print;
         int i = 0;
 
@@ -423,7 +434,7 @@ void do_key_pressed(void) {
             DISPLAY_CHAR(((char*)(print_addr) + print_count), str_[i++]);
             print_count++;
         }
-
+*/
         key_decode_state = STATE_INIT;
     }
 
@@ -467,21 +478,6 @@ void vApplicationIdleHook( void )
        3. 统计 CPU 利用率
        4. 闪烁一个状态指示灯
     */
-#if TEST
-  char str_[20] = "";
-  int num = A(3, 3);
-
-  DISPLAY_CUT(count);
-  DISPLAY_INT(num);
-  FINISH_PROGRAM;
-
-  itoa(num, str_, 10); // 10表示10进制
-  SendString(str_);
-  //SendString("\n");
-
-  itoa(count, str_, 10); // 10表示10进制
-  SendString(str_);
-#endif
 }
 
  /* An interrupt handler. The interrupt handler does not perform any processing,  
@@ -544,6 +540,32 @@ void vHandlingKeyboardTask( void *pvParameters )
     }
 }
 
+void vHandlingAckerTask( void *pvParameters ) {
+    for(;;) {
+        // 你的逻辑代码
+        vTaskDelay(pdMS_TO_TICKS(1000*60)); 
+
+#if TEST
+        if (do_acker) {
+            char str_[20] = "";
+            count = 0;
+            int num = A(3, 3);
+
+            // DISPLAY_CUT(count);
+            // DISPLAY_INT(num);
+            // FINISH_PROGRAM;
+
+            itoa(num, str_, 10); // 10表示10进制
+            SendString(str_);
+            //SendString("\n");
+
+            itoa(count, str_, 10); // 10表示10进制
+            SendString(str_);
+        }
+#endif
+    }
+}
+
 int main()
 {
   int key_pressed;
@@ -557,8 +579,19 @@ int main()
       configMINIMAL_STACK_SIZE,     // 栈大小
       NULL,                         // 参数
       configMAX_PRIORITIES - 1,     // <--- 这里的 "1" 就是优先级设置！
-      uxLogicTaskStack,             // 静态栈
-      &xLogicTaskTCB                // 静态 TCB
+      uxKeyboardTaskStack,          // 静态栈
+      &xKeyboardTaskTCB             // 静态 TCB
+  );
+
+  // 静态创建任务
+  xAckerTaskHandle = xTaskCreateStatic(
+      vHandlingAckerTask,           // 任务函数
+      "acker",                      // 任务名称
+      configMINIMAL_STACK_SIZE,     // 栈大小
+      NULL,                         // 参数
+      1,                            // <--- 这里的 "1" 就是优先级设置！
+      uxAckerTaskStack,             // 静态栈
+      &xAckerTaskTCB                // 静态 TCB
   );
 
   vTaskStartScheduler();
